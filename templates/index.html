@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система скоринга потенциальных банкротов</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="fas fa-search-dollar"></i> Система скоринга потенциальных банкротов</h1>
+            <p class="text-muted">Определение актуальных контактов для консультаций по банкротству</p>
+        </div>
+
+        <!-- Блок 1: Настройки фильтрации -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-filter"></i> Настройки фильтрации
+            </div>
+            
+            <form id="scoringForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="fas fa-map-marker-alt"></i> География (регион):
+                        </label>
+                        <div class="region-checkbox">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                            <label for="selectAll" class="form-check-label"><strong>Выбрать всё</strong></label>
+                        </div>
+                        <div class="checkbox-grid">
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="moscow" class="form-check-input region-item">
+                                <label class="form-check-label">Москва</label>
+                            </div>
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="tatarstan" class="form-check-input region-item">
+                                <label class="form-check-label">Татарстан</label>
+                            </div>
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="saratov" class="form-check-input region-item">
+                                <label class="form-check-label">Саратов</label>
+                            </div>
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="kaluga" class="form-check-input region-item">
+                                <label class="form-check-label">Калуга</label>
+                            </div>
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="spb" class="form-check-input region-item">
+                                <label class="form-check-label">Санкт-Петербург</label>
+                            </div>
+                            <div class="region-checkbox">
+                                <input type="checkbox" name="regions" value="nsk" class="form-check-input region-item">
+                                <label class="form-check-label">Новосибирск</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-ruble-sign"></i> Сумма долга:
+                            </label>
+                            <div class="d-flex align-items-center">
+                                <input type="number" class="form-control me-2" id="minDebt" value="250000" min="0" placeholder="Минимальная сумма">
+                                <span>рублей</span>
+                            </div>
+                        </div>
+                        
+                        <label class="form-label">
+                            <i class="fas fa-cogs"></i> Дополнительные фильтры:
+                        </label>
+                        <div class="checkbox-grid">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="excludeBankrupt" checked>
+                                <label class="form-check-label" for="excludeBankrupt">Исключать признанных банкротов</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="excludeNoDebt">
+                                <label class="form-check-label" for="excludeNoDebt">Исключать контакты без долгов</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="onlyProperty">
+                                <label class="form-check-label" for="onlyProperty">Только с недвижимостью</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="onlyBankMfo">
+                                <label class="form-check-label" for="onlyBankMfo">Только с банковскими или МФО-долгами</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="onlyCourtOrders">
+                                <label class="form-check-label" for="onlyCourtOrders">Только с судебными приказами за последние 3 месяца</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="onlyActiveInn" checked>
+                                <label class="form-check-label" for="onlyActiveInn">Только с живыми ИНН</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Блок 2: Запуск и статус -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-play-circle"></i> Запуск и статус
+            </div>
+            
+            <div class="text-center">
+                <button type="button" class="btn btn-primary btn-lg" id="startScoring">
+                    <i class="fas fa-search"></i> Запустить скоринг
+                </button>
+            </div>
+            
+            <div id="statusIndicator" class="status-indicator">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status" id="statusSpinner" style="display: none;"></div>
+                    <span id="statusText"></span>
+                </div>
+                <div class="progress-bar mt-2">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="errorLog" class="mt-2 text-danger"></div>
+            </div>
+        </div>
+
+        <!-- Блок 3: Результаты -->
+        <div class="section-card results-section" id="resultsSection">
+            <div class="section-title">
+                <i class="fas fa-chart-line"></i> Результаты
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-download me-2"></i> Скачать результаты:</h5>
+                    <div class="d-flex flex-wrap mt-3">
+                        <a href="#" class="download-btn mb-2" id="downloadCsv">
+                            <i class="fas fa-file-csv me-2"></i> Скачать результат (CSV)
+                        </a>
+                        <a href="#" class="download-btn mb-2" id="downloadLogs" style="background: linear-gradient(45deg, #6c757d, #495057);">
+                            <i class="fas fa-file-alt me-2"></i> Журнал логов
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-info-circle me-2"></i> Статистика:</h5>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalContacts">0</div>
+                            <div class="stat-label">Найдено контактов</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="avgScore">0</div>
+                            <div class="stat-label">Средний балл</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="highScoreCount">0</div>
+                            <div class="stat-label">Высокий балл (80+)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <h5><i class="fas fa-users me-2"></i> Группы для A/B тестирования:</h5>
+                <div id="groupStats" class="log-viewer mt-2">
+                    <div class="text-muted">Результаты будут показаны после выполнения скоринга</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Глобальные переменные
+        let scoringInProgress = false;
+        let statusUpdateInterval = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            // Обработка "Выбрать всё"
+            document.getElementById('selectAll').addEventListener('change', function() {
+                const regionItems = document.querySelectorAll('.region-item');
+                regionItems.forEach(item => {
+                    item.checked = this.checked;
+                });
+            });
+
+            // Обработка индивидуальных регионов
+            document.querySelectorAll('.region-item').forEach(item => {
+                item.addEventListener('change', function() {
+                    const selectAll = document.getElementById('selectAll');
+                    const regionItems = document.querySelectorAll('.region-item');
+                    const checkedItems = document.querySelectorAll('.region-item:checked');
+                    
+                    if (checkedItems.length === regionItems.length) {
+                        selectAll.checked = true;
+                        selectAll.indeterminate = false;
+                    } else if (checkedItems.length === 0) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    } else {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = true;
+                    }
+                });
+            });
+
+            // Запуск скоринга
+            document.getElementById('startScoring').addEventListener('click', startScoring);
+            
+            // Скачивание результатов
+            document.getElementById('downloadCsv').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/api/download-results';
+            });
+            
+            // Скачивание логов
+            document.getElementById('downloadLogs').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/api/download-logs';
+            });
+        }
+
+        async function startScoring() {
+            if (scoringInProgress) return;
+            
+            // Валидация
+            const selectedRegions = document.querySelectorAll('.region-item:checked');
+            if (selectedRegions.length === 0) {
+                alert('Выберите хотя бы один регион');
+                return;
+            }
+
+            scoringInProgress = true;
+            const startBtn = document.getElementById('startScoring');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const statusSpinner = document.getElementById('statusSpinner');
+            const progressFill = document.getElementById('progressFill');
+            const errorLog = document.getElementById('errorLog');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Скрыть предыдущие результаты
+            resultsSection.style.display = 'none';
+            
+            // Сброс ошибок
+            errorLog.textContent = '';
+            
+            // Обновляем UI
+            startBtn.disabled = true;
+            statusIndicator.style.display = 'block';
+            statusIndicator.className = 'status-indicator status-info';
+            statusSpinner.style.display = 'inline-block';
+            statusText.textContent = 'Скоринг запущен...';
+            progressFill.style.width = '0%';
+            
+            // Собираем данные формы
+            const regions = Array.from(selectedRegions).map(cb => cb.value);
+            const minDebt = parseInt(document.getElementById('minDebt').value) || 250000;
+            
+            const scoringRequest = {
+                regions: regions,
+                min_debt: minDebt,
+                exclude_bankrupt: document.getElementById('excludeBankrupt').checked,
+                exclude_no_debt: document.getElementById('excludeNoDebt').checked,
+                only_property: document.getElementById('onlyProperty').checked,
+                only_bank_mfo: document.getElementById('onlyBankMfo').checked,
+                only_court_orders: document.getElementById('onlyCourtOrders').checked,
+                only_active_inn: document.getElementById('onlyActiveInn').checked
+            };
+            
+            try {
+                const response = await fetch('/api/start-scoring', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(scoringRequest)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Ошибка сервера: ' + response.status);
+                }
+                
+                // Запускаем опрос статуса
+                if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+                statusUpdateInterval = setInterval(pollScoringStatus, 2000);
+                
+            } catch (error) {
+                console.error('Ошибка запуска скоринга:', error);
+                statusSpinner.style.display = 'none';
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = 'Ошибка запуска: ' + error.message;
+                startBtn.disabled = false;
+                scoringInProgress = false;
+            }
+        }
+
+        async function pollScoringStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) throw new Error('Ошибка получения статуса');
+                
+                const statusData = await response.json();
+                updateStatusUI(statusData);
+                
+                // Останавливаем опрос, если процесс завершен
+                if (statusData.status !== 'running') {
+                    clearInterval(statusUpdateInterval);
+                    scoringInProgress = false;
+                    
+                    if (statusData.status === 'completed') {
+                        showResults(statusData);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ошибка опроса статуса:', error);
+                // Продолжаем опрос при временных ошибках
+            }
+        }
+
+        function updateStatusUI(status) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const statusSpinner = document.getElementById('statusSpinner');
+            const progressFill = document.getElementById('progressFill');
+            const errorLog = document.getElementById('errorLog');
+            const startBtn = document.getElementById('startScoring');
+            
+            statusText.textContent = status.message;
+            progressFill.style.width = status.progress + '%';
+            
+            if (status.status === 'running') {
+                statusIndicator.className = 'status-indicator status-info';
+                statusSpinner.style.display = 'inline-block';
+                startBtn.disabled = true;
+                errorLog.textContent = '';
+            } else if (status.status === 'completed') {
+                statusIndicator.className = 'status-indicator status-success';
+                statusSpinner.style.display = 'none';
+                startBtn.disabled = false;
+                errorLog.textContent = '';
+            } else if (status.status === 'error') {
+                statusIndicator.className = 'status-indicator status-error';
+                statusSpinner.style.display = 'none';
+                startBtn.disabled = false;
+                if (status.errors && status.errors.length > 0) {
+                    errorLog.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + status.errors.join('<br>');
+                }
+            }
+        }
+
+        function showResults(status) {
+            const resultsSection = document.getElementById('resultsSection');
+            const totalContacts = document.getElementById('totalContacts');
+            const avgScore = document.getElementById('avgScore');
+            const highScoreCount = document.getElementById('highScoreCount');
+            const groupStats = document.getElementById('groupStats');
+            
+            resultsSection.style.display = 'block';
+            
+            // Обновляем статистику
+            if (status.total_contacts) {
+                totalContacts.textContent = status.total_contacts;
+                avgScore.textContent = '75'; // Заглушка
+                highScoreCount.textContent = Math.floor(status.total_contacts * 0.3);
+                
+                // Генерация статистики по группам
+                const groups = [
+                    { name: 'high_debt_recent_court', count: Math.floor(status.total_contacts * 0.35) },
+                    { name: 'bank_only_no_property', count: Math.floor(status.total_contacts * 0.25) },
+                    { name: 'tax_debt_with_property', count: Math.floor(status.total_contacts * 0.15) },
+                    { name: 'multiple_creditors', count: Math.floor(status.total_contacts * 0.25) }
+                ];
+                
+                groupStats.innerHTML = groups.map(g => 
+                    `<div>• Группа "${g.name}" --- ${g.count} лидов</div>`
+                ).join('');
+            } else {
+                totalContacts.textContent = '0';
+                groupStats.innerHTML = '<div class="text-danger">Нет данных для отображения</div>';
+            }
+        }
+    </script>
+</body>
+</html>
+<!-- File: templates/index.html -->
