@@ -16,6 +16,8 @@ bankruptcy_scoring_system/
 │   └── styles.css
 ├── templates/
 │   └── index.html
+├── logs/
+├── exports/
 ├── proxies.txt
 ├── requirements.txt
 └── Dockerfile
